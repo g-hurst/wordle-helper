@@ -1,4 +1,6 @@
 import re
+import json
+from collections import Counter
 
 def output_matches(matches):
     print('Possible Words: ')
@@ -10,6 +12,7 @@ def filter_guess(guess, key, words):
     in_word      = []  # letters in the word
     match        = ['.', '.', '.', '.', '.'] # letters in correct pos
     anti_matches = [] # expressions for letters in wrong pos
+    anti_match  = ['.', '.', '.', '.', '.']
     
     # update the contained, not contained, match, anti-match
     for i, letter in enumerate(key):
@@ -43,8 +46,11 @@ def filter_guess(guess, key, words):
         return yes
     
     # filter the words based off the guess
-    matches = [word for word in words if is_match(word)]
-    return matches
+    dels = [word for word in words.keys() if not is_match(word)]
+    for word in dels:
+        del words[word]
+
+    return words
 
 prompt = \
 '''
@@ -65,8 +71,11 @@ wordle output is: gbbyy
 if __name__ == '__main__':
     # filter words to only 5 letters and alphabetical
     is_valid    = lambda w: (len(w) == 6) and w[:-1].isalpha()
-    valid_words = [word.strip().lower() for word in open('words_all.txt', 'r') if is_valid(word)]
-    
+    valid_words = Counter([word.strip().lower() for word in open('words_all.txt', 'r') if is_valid(word)])
+    with open('counts.json', 'r') as f: 
+        frequencies = Counter(json.load(f))
+    valid_words += frequencies
+
     n = 1
     print(prompt)
     # go through guesses until an answer has been reached
@@ -74,5 +83,5 @@ if __name__ == '__main__':
         guess = input('enter guess # {}     -> '.format(n)).lower()
         key   = input('enter wordle output -> '            ).lower()
         valid_words = filter_guess(guess, key, valid_words)
-        output_matches(valid_words)
+        output_matches([word[0] for word in valid_words.most_common(100)])
         n += 1
